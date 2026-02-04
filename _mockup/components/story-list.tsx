@@ -1,0 +1,187 @@
+"use client"
+
+import { useMemo, useState } from "react"
+import { StoryCard } from "@/components/story-card"
+import { sampleStories } from "@/lib/sample-data"
+import { Button } from "@/components/ui/button"
+import { FileX, ChevronLeft, ChevronRight } from "lucide-react"
+
+interface StoryListProps {
+  filters: {
+    genre: string
+    search: string
+    sort: string
+  }
+}
+
+const ITEMS_PER_PAGE = 9
+
+export function StoryList({ filters }: StoryListProps) {
+  const [currentPage, setCurrentPage] = useState(1)
+  const filteredAndSortedStories = useMemo(() => {
+    let filtered = [...sampleStories]
+
+    // Genre filter
+    if (filters.genre !== "all") {
+      const genreMap: Record<string, string> = {
+        free: "자유",
+        fantasy: "판타지",
+        sf: "SF",
+        romance: "로맨스",
+        horror: "공포"
+      }
+      const genreKorean = genreMap[filters.genre]
+      if (genreKorean) {
+        filtered = filtered.filter(story => story.genre === genreKorean)
+      }
+    }
+
+    // Tag/Search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase().replace(/#/g, "").trim()
+      filtered = filtered.filter(story => {
+        // Search in tags
+        const matchesTags = story.tags.some(tag => 
+          tag.toLowerCase().includes(searchLower)
+        )
+        // Search in title
+        const matchesTitle = story.title.toLowerCase().includes(searchLower)
+        // Search in preview
+        const matchesPreview = story.preview?.toLowerCase().includes(searchLower)
+        
+        return matchesTags || matchesTitle || matchesPreview
+      })
+    }
+
+    // Sort
+    switch (filters.sort) {
+      case "likes":
+        filtered.sort((a, b) => b.likes - a.likes)
+        break
+      case "deadline":
+        // For now, prioritize challenge stories
+        filtered.sort((a, b) => {
+          if (a.isChallenge && !b.isChallenge) return -1
+          if (!a.isChallenge && b.isChallenge) return 1
+          return 0
+        })
+        break
+      case "latest":
+      default:
+        // Keep original order (latest)
+        break
+    }
+
+    return filtered
+  }, [filters])
+
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setCurrentPage(1)
+  }, [filters])
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAndSortedStories.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const currentStories = filteredAndSortedStories.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-foreground">진행 중인 이야기</h2>
+        <span className="text-sm text-muted-foreground">{filteredAndSortedStories.length}개의 이야기</span>
+      </div>
+      
+      {filteredAndSortedStories.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentStories.map((story) => (
+              <StoryCard key={story.id} {...story} />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-12">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="bg-card/60 backdrop-blur-sm disabled:opacity-50 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="sr-only">이전 페이지</span>
+              </Button>
+
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  // Show first page, last page, current page and adjacent pages
+                  const showPage = 
+                    page === 1 || 
+                    page === totalPages || 
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  
+                  if (!showPage) {
+                    // Show ellipsis
+                    if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <div key={page} className="px-2 py-1 text-muted-foreground">
+                          ...
+                        </div>
+                      )
+                    }
+                    return null
+                  }
+
+                  return (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(page)}
+                      className={
+                        currentPage === page
+                          ? "min-w-[40px] shadow-md shadow-primary/25"
+                          : "min-w-[40px] bg-card/60 backdrop-blur-sm hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
+                      }
+                    >
+                      {page}
+                    </Button>
+                  )
+                })}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="bg-card/60 backdrop-blur-sm disabled:opacity-50 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
+              >
+                <ChevronRight className="h-4 w-4" />
+                <span className="sr-only">다음 페이지</span>
+              </Button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="p-6 rounded-full bg-muted/50 mb-4">
+            <FileX className="h-12 w-12 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-semibold text-foreground mb-2">검색 결과가 없습니다</h3>
+          <p className="text-muted-foreground text-center max-w-md">
+            다른 검색어나 필터를 사용해보세요
+          </p>
+        </div>
+      )}
+    </section>
+  )
+}
