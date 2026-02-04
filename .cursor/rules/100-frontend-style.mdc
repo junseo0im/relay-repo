@@ -1,0 +1,22 @@
+---
+description: StoryRelay 프로젝트의 UI 컴포넌트 표준과 디자인 시스템을 정의합니다.
+globs: 
+  - "components/**/*.tsx"
+  - "app/**/*.tsx"
+---
+
+# StoryRelay Frontend Style & UI Standards
+
+## Visual Identity
+
+- **Concept**: v0.dev 기반의 shadcn/ui 컴포넌트를 활용하여 협업 스토리텔링 플랫폼의 감성을 담은 깔끔하고 모던한 디자인을 유지합니다.
+- **Theme**: 창의적이면서도 전문적인 분위기. Glassmorphism과 Micro-interactions를 통한 섬세한 인터랙션.
+- **Color Philosophy**: Primary/Secondary 그라데이션을 활용한 따뜻하고 영감을 주는 색감.
+
+## Color System
+
+반드시 3-5개의 색상만 사용합니다:
+- **Primary**: 주요 액션 및 강조 (버튼, 링크, 활성 상태)
+- **Secondary**: 보조 액션 및 그라데이션
+- **Neutrals**: Background, Card, Border, Muted 등 (2-3개)
+- **Semantic Colors**: Destructive (좋아요, 삭제), Success, Warning
