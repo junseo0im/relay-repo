@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight, FileX } from "lucide-react"
+import { useEffect, useState } from "react"
+import { ChevronLeft, ChevronRight, FileX, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { sampleStories } from "@/lib/sample-data"
 import { StoryCard } from "@/components/posts/StoryCard"
 import type { HomeFilters } from "@/components/posts/FilterBar"
+import type { Story } from "@/lib/types"
 
 const ITEMS_PER_PAGE = 9
 
@@ -16,61 +16,50 @@ interface StoryListProps {
 
 export function StoryList({ filters }: StoryListProps) {
   const [currentPage, setCurrentPage] = useState(1)
-
-  const filteredAndSortedStories = useMemo(() => {
-    let filtered = [...sampleStories]
-
-    if (filters.genre !== "all") {
-      const genreMap: Record<string, string> = {
-        free: "자유",
-        fantasy: "판타지",
-        sf: "SF",
-        romance: "로맨스",
-        horror: "공포",
-      }
-      const genreKorean = genreMap[filters.genre]
-      if (genreKorean) {
-        filtered = filtered.filter((story) => story.genre === genreKorean)
-      }
-    }
-
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase().replace(/#/g, "").trim()
-      filtered = filtered.filter((story) => {
-        const matchesTags = story.tags.some((tag) => tag.toLowerCase().includes(searchLower))
-        const matchesTitle = story.title.toLowerCase().includes(searchLower)
-        const matchesPreview = story.preview?.toLowerCase().includes(searchLower)
-        return matchesTags || matchesTitle || matchesPreview
-      })
-    }
-
-    switch (filters.sort) {
-      case "likes":
-        filtered.sort((a, b) => b.likes - a.likes)
-        break
-      case "deadline":
-        filtered.sort((a, b) => {
-          if (a.isChallenge && !b.isChallenge) return -1
-          if (!a.isChallenge && b.isChallenge) return 1
-          return 0
-        })
-        break
-      case "latest":
-      default:
-        break
-    }
-
-    return filtered
-  }, [filters])
+  const [stories, setStories] = useState<Story[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     setCurrentPage(1)
   }, [filters.genre, filters.search, filters.sort])
 
-  const totalPages = Math.ceil(filteredAndSortedStories.length / ITEMS_PER_PAGE)
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-  const endIndex = startIndex + ITEMS_PER_PAGE
-  const currentStories = filteredAndSortedStories.slice(startIndex, endIndex)
+  useEffect(() => {
+    let cancelled = false
+    setIsLoading(true)
+
+    const params = new URLSearchParams({
+      genre: filters.genre,
+      search: filters.search,
+      sort: filters.sort,
+      page: String(currentPage),
+    })
+
+    fetch(`/api/stories?${params}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) {
+          setStories(data.stories ?? [])
+          setTotalCount(data.totalCount ?? 0)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStories([])
+          setTotalCount(0)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [filters.genre, filters.search, filters.sort, currentPage])
+
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE) || 1
+  const currentStories = stories
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
@@ -82,11 +71,15 @@ export function StoryList({ filters }: StoryListProps) {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-foreground">진행 중인 이야기</h2>
         <span className="text-sm text-muted-foreground">
-          {filteredAndSortedStories.length}개의 이야기
+          {totalCount}개의 이야기
         </span>
       </div>
 
-      {filteredAndSortedStories.length > 0 ? (
+      {isLoading ? (
+        <div className="min-h-[200px] flex items-center justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+        </div>
+      ) : currentStories.length > 0 ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {currentStories.map((story) => (

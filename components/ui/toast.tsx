@@ -5,6 +5,7 @@ import * as ToastPrimitives from "@radix-ui/react-toast"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 const ToastProvider = ToastPrimitives.Provider
 
@@ -106,6 +107,26 @@ ToastDescription.displayName = ToastPrimitives.Description.displayName
 type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
+function Toaster() {
+  const { toasts } = useToast()
+
+  return (
+    <ToastProvider>
+      <ToastViewport />
+      {toasts.map(({ id, title, description, action, ...props }) => (
+        <Toast key={id} {...props}>
+          <div className="grid gap-1">
+            {title && <ToastTitle>{title}</ToastTitle>}
+            {description && <ToastDescription>{description}</ToastDescription>}
+          </div>
+          {action}
+          <ToastClose />
+        </Toast>
+      ))}
+    </ToastProvider>
+  )
+}
+
 export {
   ToastProvider,
   ToastViewport,
@@ -114,6 +135,7 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+  Toaster,
   type ToastProps,
   type ToastActionElement,
 }

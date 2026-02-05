@@ -3,6 +3,11 @@ import { Nunito, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
+import { PageBackground } from "@/components/common/PageBackground";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { AuthProvider } from "@/components/providers/AuthProvider";
+import { LoginModal } from "@/components/auth/LoginModal";
+import { Toaster } from "@/components/ui/toast";
 
 const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito" });
 const nunitoSans = Nunito_Sans({ subsets: ["latin"], variable: "--font-nunito-sans" });
@@ -20,14 +25,36 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var theme = localStorage.getItem('theme');
+                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var isDark = theme === 'dark' || (!theme && prefersDark);
+                if (isDark) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
-        className={`${nunito.variable} ${nunitoSans.variable} font-sans antialiased min-h-screen bg-gradient-to-br from-[oklch(0.92_0.03_280)] via-[oklch(0.95_0.02_250)] to-[oklch(0.92_0.04_220)]`}
+        className={`${nunito.variable} ${nunitoSans.variable} font-sans antialiased min-h-screen`}
       >
-        <div className="min-h-screen flex flex-col">
-          <Header />
-          <main className="flex-1 pt-16">{children}</main>
-          <Footer />
-        </div>
+        <AuthProvider>
+          <ThemeProvider>
+            <PageBackground />
+            <div className="min-h-screen flex flex-col relative">
+              <Header />
+              <main className="flex-1 pt-16 animate-in fade-in duration-500">{children}</main>
+              <Footer />
+            </div>
+            <LoginModal />
+            <Toaster />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
