@@ -32,21 +32,37 @@ async function generateImageWithHuggingFace(
   for (const model of HF_MODELS) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const blob = await client.textToImage({
+        const result = await client.textToImage({
           model,
           inputs: prompt,
         })
 
-        const arrayBuffer = await blob.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
+        let buffer: Buffer
+        let contentType = "image/png"
+
+        if (typeof result === "string") {
+          if (result.startsWith("data:")) {
+            const base64 = result.split(",")[1]
+            if (!base64) throw new Error("Invalid data URL")
+            buffer = Buffer.from(base64, "base64")
+          } else {
+            const res = await fetch(result)
+            const arr = await res.arrayBuffer()
+            buffer = Buffer.from(arr)
+            contentType = res.headers.get("content-type") || contentType
+          }
+        } else {
+          const blob = result as Blob
+          const arrayBuffer = await blob.arrayBuffer()
+          buffer = Buffer.from(arrayBuffer)
+          contentType = blob.type || contentType
+        }
 
         if (!isImageBuffer(buffer)) {
           lastError = "Invalid image response"
           console.warn("[api/cover] HF", model, "returned non-image")
           break
         }
-
-        const contentType = blob.type || "image/png"
         const ext = contentType.includes("png") ? "png" : "jpg"
         return {
           result: {

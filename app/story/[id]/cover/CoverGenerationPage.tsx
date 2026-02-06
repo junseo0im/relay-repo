@@ -54,7 +54,6 @@ export function CoverGenerationPage({
       setError("표지 생성 중 오류가 발생했습니다")
     } finally {
       setIsLoading(false)
-      setHasTried(true)
     }
   }
 
