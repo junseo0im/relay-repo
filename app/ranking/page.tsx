@@ -1,13 +1,13 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Award, BookOpen, Crown, Heart, Medal, Trophy } from "lucide-react"
+import { Award, BookOpen, Crown, Heart, Loader2, Medal, PenLine, Trophy } from "lucide-react"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { rankingStories } from "@/lib/sample-data"
-import { GENRES, type Genre } from "@/lib/types"
+import type { PopularAuthor, RankingStory } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 type TimeRange = "weekly" | "monthly" | "all"
@@ -20,7 +20,6 @@ const GENRE_FILTERS: { value: string; label: string }[] = [
   { value: "SF", label: "SF" },
   { value: "로맨스", label: "로맨스" },
   { value: "공포", label: "공포" },
-  { value: "미스터리", label: "미스터리" },
 ]
 
 function RankIcon({ rank }: { rank: number }) {
@@ -35,14 +34,36 @@ function RankIcon({ rank }: { rank: number }) {
 }
 
 export default function RankingPage() {
-  const [timeRange, setTimeRange] = useState<TimeRange>("weekly")
+  const [timeRange, setTimeRange] = useState<TimeRange>("all")
   const [activeTab, setActiveTab] = useState<RankingTab>("stories")
   const [genreFilter, setGenreFilter] = useState<string>("전체")
+  const [stories, setStories] = useState<RankingStory[]>([])
+  const [authors, setAuthors] = useState<PopularAuthor[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [authorsLoading, setAuthorsLoading] = useState(false)
 
-  const filteredStories = useMemo(() => {
-    if (genreFilter === "전체") return rankingStories
-    return rankingStories.filter((s) => s.genre === genreFilter)
-  }, [genreFilter])
+  useEffect(() => {
+    let cancelled = false
+    setIsLoading(true)
+    const params = new URLSearchParams({
+      genre: genreFilter,
+      timeRange,
+    })
+    fetch(`/api/ranking?${params}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setStories(data.stories ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setStories([])
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [genreFilter, timeRange])
 
   const timeRanges: { value: TimeRange; label: string }[] = [
     { value: "weekly", label: "주간" },
@@ -139,13 +160,17 @@ export default function RankingPage() {
         {/* Story Ranking List */}
         {activeTab === "stories" && (
           <div className="space-y-3">
-            {filteredStories.length === 0 ? (
+            {isLoading ? (
+              <div className="py-16 flex justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
+              </div>
+            ) : stories.length === 0 ? (
               <div className="py-16 text-center text-muted-foreground">
                 <Award className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>해당 장르의 랭킹이 없습니다.</p>
               </div>
             ) : (
-              filteredStories.map((story, index) => (
+              stories.map((story, index) => (
                 <Link
                   key={story.id}
                   href={`/story/${story.id}`}
@@ -197,24 +222,86 @@ export default function RankingPage() {
           </div>
         )}
 
-        {/* Author Ranking (Placeholder) */}
+        {/* Author Ranking */}
         {activeTab === "authors" && (
-          <div className="space-y-4 mb-8">
-            <div className="bg-card/40 rounded-2xl border border-dashed border-border p-12 text-center">
-              <Trophy className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-              <h3 className="font-semibold text-foreground mb-2">작가 랭킹 준비 중</h3>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                Phase 2에서 인기 작가 랭킹이 제공됩니다.
-                총 좋아요 수, 참여 스토리 수, 완성 작품 수 등을 기반으로 한 작가별 순위를 확인할 수 있습니다.
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => setActiveTab("stories")}
-              >
-                스토리 랭킹 보기
-              </Button>
-            </div>
+          <div className="space-y-3">
+            {authorsLoading ? (
+              <div className="py-16 flex justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
+              </div>
+            ) : authors.length === 0 ? (
+              <div className="bg-card/40 rounded-2xl border border-dashed border-border p-12 text-center">
+                <Trophy className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="font-semibold text-foreground mb-2">아직 참여한 작가가 없어요</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  스토리에 참여하고 첫 번째로 랭킹에 올라가 보세요!
+                </p>
+                <Link href="/">
+                  <Button variant="outline" className="mt-4">
+                    스토리 보러 가기
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              authors.map((author, index) => (
+                <Link
+                  key={author.id}
+                  href={`/profile/${author.id}`}
+                  className={cn(
+                    "flex items-center gap-4 p-4 bg-card rounded-2xl border border-border/50 shadow-sm hover:shadow-md transition-all",
+                    index < 3 && "border-primary/20"
+                  )}
+                >
+                  <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center">
+                    <RankIcon rank={index + 1} />
+                  </div>
+                  <Avatar className="h-12 w-12 flex-shrink-0">
+                    <AvatarImage src={author.avatar} alt={author.name} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {author.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-card-foreground truncate">
+                        {author.name}
+                      </h3>
+                      {author.badge && (
+                        <Badge variant="outline" className="flex-shrink-0 text-xs">
+                          {author.badge}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="h-4 w-4" />
+                        {author.storiesCount}스토리
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Heart className="h-4 w-4" />
+                        {author.totalLikes}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <PenLine className="h-4 w-4" />
+                        {author.totalTurns}턴
+                      </span>
+                    </div>
+                  </div>
+                  {index < 3 && (
+                    <div className="flex-shrink-0">
+                      <Trophy
+                        className={cn(
+                          "h-5 w-5",
+                          index === 0 && "text-yellow-500",
+                          index === 1 && "text-gray-400",
+                          index === 2 && "text-amber-600"
+                        )}
+                      />
+                    </div>
+                  )}
+                </Link>
+              ))
+            )}
           </div>
         )}
 

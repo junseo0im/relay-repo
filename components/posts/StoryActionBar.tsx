@@ -43,7 +43,7 @@ export function StoryActionBar({
     const result = await completeStory(roomId)
     setIsCompleting(false)
     if (result.success) {
-      router.refresh()
+      router.push(`/story/${roomId}/cover`)
     }
   }
 
@@ -66,8 +66,36 @@ export function StoryActionBar({
     }
   }
 
-  const handleSummary = () => {
-    setShowSummary(!showSummary)
+  const [summary, setSummary] = useState<string | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
+
+  const handleSummary = async () => {
+    if (showSummary) {
+      setShowSummary(false)
+      return
+    }
+    setShowSummary(true)
+    if (summary !== null) return
+    setSummaryLoading(true)
+    setSummaryError(null)
+    try {
+      const res = await fetch("/api/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setSummaryError(data.error || "요약 생성에 실패했습니다")
+        return
+      }
+      setSummary(data.summary ?? "")
+    } catch {
+      setSummaryError("요약을 불러오지 못했습니다")
+    } finally {
+      setSummaryLoading(false)
+    }
   }
 
   return (
@@ -120,12 +148,16 @@ export function StoryActionBar({
             <Sparkles className="h-5 w-5 text-primary" />
             <h4 className="font-semibold text-card-foreground">AI 줄거리 요약</h4>
           </div>
-          <p className="text-muted-foreground leading-relaxed">
-            이 이야기는 주인공이 예상치 못한 상황에 처하면서 시작됩니다. 여러 작가들이 번갈아가며 쓴
-            문단들이 모여 독특한 플롯을 형성하고 있으며, 긴장감과 감동이 조화롭게 어우러진 전개가
-            특징입니다. 현재까지의 이야기는 주인공의 성장과 주변 인물들과의 관계 변화를 중심으로
-            진행되고 있습니다.
-          </p>
+          {summaryLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>요약 생성 중...</span>
+            </div>
+          ) : summaryError ? (
+            <p className="text-destructive text-sm">{summaryError}</p>
+          ) : (
+            <p className="text-muted-foreground leading-relaxed">{summary}</p>
+          )}
         </div>
       )}
     </div>

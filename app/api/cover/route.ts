@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server"
+import { InferenceClient } from "@huggingface/inference"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
@@ -14,122 +15,55 @@ function isImageBuffer(buf: Buffer): boolean {
   return jpeg || png || webp
 }
 
-/** Pollinations.ai: 무료, API 키 불필요. 짧은 영문 프롬프트 권장 */
-async function generateImageWithPollinations(prompt: string): Promise<ImageResult | null> {
-  const shortPrompt = prompt.slice(0, 120).replace(/["\n]/g, " ").trim()
-  const encoded = encodeURIComponent(shortPrompt)
-  const url = `https://image.pollinations.ai/prompt/${encoded}?model=flux`
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const res = await fetch(url, {
-        signal: AbortSignal.timeout(90_000),
-        headers: { "User-Agent": "StoryCover/1.0" },
-      })
-      if (!res.ok) {
-        console.warn("[api/cover] Pollinations status:", res.status, await res.text().catch(() => ""))
-        continue
-      }
-      const arrayBuffer = await res.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
-      if (!isImageBuffer(buffer)) {
-        console.warn("[api/cover] Pollinations returned non-image, length:", buffer.length)
-        continue
-      }
-      const ct = res.headers.get("content-type") ?? "image/jpeg"
-      const ext = ct.includes("png") ? "png" : "jpg"
-      return { buffer, contentType: ct.includes("png") ? "image/png" : "image/jpeg", ext }
-    } catch (e) {
-      console.warn("[api/cover] Pollinations attempt", attempt + 1, "failed:", e)
-    }
-  }
-  return null
-}
+const HF_MODELS = [
+  "black-forest-labs/FLUX.1-schnell",
+  "black-forest-labs/FLUX.1-dev",
+  "stabilityai/stable-diffusion-xl-base-1.0",
+] as const
 
-/** Replicate FLUX Schnell: REPLICATE_API_TOKEN 필요, $5 무료 크레딧 */
-async function generateImageWithReplicate(
+/** Hugging Face Inference (router.huggingface.co). HUGGINGFACE_TOKEN 필요 */
+async function generateImageWithHuggingFace(
   prompt: string,
   token: string
-): Promise<ImageResult | null> {
-  const res = await fetch(
-    "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Prefer: "wait=90",
-      },
-      body: JSON.stringify({
-        input: {
-          prompt,
-          aspect_ratio: "2:3",
-        },
-      }),
-      signal: AbortSignal.timeout(120_000),
-    }
-  )
-  if (!res.ok) {
-    console.warn("[api/cover] Replicate status:", res.status, await res.text().catch(() => ""))
-    return null
-  }
-  const data = (await res.json()) as {
-    output?: string | string[]
-    error?: string
-    status?: string
-  }
-  if (data.error || data.status === "failed") {
-    console.warn("[api/cover] Replicate error:", data.error ?? data.status)
-    return null
-  }
-  if (data.status !== "succeeded" || !data.output) {
-    console.warn("[api/cover] Replicate not ready:", data.status)
-    return null
-  }
-  const imageUrl = Array.isArray(data.output) ? data.output[0] : data.output
-  if (!imageUrl || typeof imageUrl !== "string") return null
-  const imgRes = await fetch(imageUrl, {
-    headers: { Authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(30_000),
-  })
-  if (!imgRes.ok) return null
-  const arrayBuffer = await imgRes.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
-  if (!isImageBuffer(buffer)) return null
-  return { buffer, contentType: "image/png", ext: "png" }
-}
+): Promise<{ result: ImageResult | null; lastError?: string }> {
+  const client = new InferenceClient(token)
+  let lastError = ""
 
-/** Gemini: API 키 필요, 할당량 제한 있음 */
-async function generateImageWithGemini(
-  prompt: string,
-  apiKey: string
-): Promise<ImageResult | null> {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseModalities: ["TEXT", "IMAGE"],
-          responseMimeType: "image/png",
-        },
-      }),
-      signal: AbortSignal.timeout(60_000),
+  for (const model of HF_MODELS) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const blob = await client.textToImage({
+          model,
+          inputs: prompt,
+        })
+
+        const arrayBuffer = await blob.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+
+        if (!isImageBuffer(buffer)) {
+          lastError = "Invalid image response"
+          console.warn("[api/cover] HF", model, "returned non-image")
+          break
+        }
+
+        const contentType = blob.type || "image/png"
+        const ext = contentType.includes("png") ? "png" : "jpg"
+        return {
+          result: {
+            buffer,
+            contentType: contentType.includes("png") ? "image/png" : "image/jpeg",
+            ext,
+          },
+        }
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : String(e)
+        console.warn("[api/cover] HF", model, "attempt", attempt + 1, "failed:", lastError)
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 5000))
+      }
     }
-  )
-  if (!res.ok) return null
-  const data = (await res.json()) as {
-    candidates?: { content?: { parts?: { inlineData?: { data?: string } }[] } }[]
   }
-  const parts = data.candidates?.[0]?.content?.parts ?? []
-  for (const part of parts) {
-    if (part.inlineData?.data) {
-      const buffer = Buffer.from(part.inlineData.data, "base64")
-      return { buffer, contentType: "image/png", ext: "png" }
-    }
-  }
-  return null
+
+  return { result: null, lastError: lastError || "Unknown error" }
 }
 
 export async function POST(request: NextRequest) {
@@ -172,44 +106,25 @@ export async function POST(request: NextRequest) {
 
     const prompt = `Book cover illustration for a collaborative story titled "${room.title}" (genre: ${room.genre}). Atmospheric, suitable for a novel cover. No text on the image. Portrait, 3:4 aspect ratio.`
 
-    const replicateToken = process.env.REPLICATE_API_TOKEN?.trim()
-    const geminiKey =
-      process.env.GOOGLE_GENERATIVE ??
-      process.env.GEMINI_API_KEY ??
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY
-
-    let result: ImageResult | null = null
-
-    // 1) Pollinations 먼저 시도 (무료, API 키 불필요)
-    try {
-      result = await generateImageWithPollinations(prompt)
-    } catch (e) {
-      console.warn("[api/cover] Pollinations failed:", e)
+    const hfToken = process.env.HUGGINGFACE_TOKEN?.trim()
+    if (!hfToken) {
+      return Response.json(
+        {
+          error:
+            "표지 생성을 사용하려면 .env.local에 HUGGINGFACE_TOKEN을 설정해주세요. (huggingface.co/settings/tokens)",
+        },
+        { status: 503 }
+      )
     }
 
-    // 2) Replicate fallback (REPLICATE_API_TOKEN 있을 때)
-    if (!result && replicateToken) {
-      try {
-        result = await generateImageWithReplicate(prompt, replicateToken)
-      } catch (e) {
-        console.warn("[api/cover] Replicate fallback failed:", e)
-      }
-    }
-
-    // 3) Gemini fallback (GOOGLE_GENERATIVE 있을 때)
-    if (!result && geminiKey?.trim()) {
-      try {
-        result = await generateImageWithGemini(prompt, geminiKey.trim())
-      } catch (e) {
-        console.warn("[api/cover] Gemini fallback failed:", e)
-      }
-    }
+    const { result, lastError } = await generateImageWithHuggingFace(prompt, hfToken)
 
     if (!result) {
       return Response.json(
         {
           error:
-            "이미지 생성에 실패했습니다. 잠시 후 다시 시도해주세요. (Replicate API 토큰 추가 시 더 안정적)",
+            "이미지 생성에 실패했습니다. 나중에 다시 시도하거나 '나중에 하기'를 선택해주세요.",
+          detail: lastError,
         },
         { status: 502 }
       )

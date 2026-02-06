@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ChevronLeft, ChevronRight, FileX, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
 import { StoryCard } from "@/components/posts/StoryCard"
 import type { HomeFilters } from "@/components/posts/FilterBar"
 import type { Story } from "@/lib/types"
@@ -150,15 +152,12 @@ export function StoryList({ filters }: StoryListProps) {
           )}
         </>
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 px-4">
-          <div className="p-6 rounded-full bg-muted/50 mb-4">
-            <FileX className="h-12 w-12 text-muted-foreground" />
-          </div>
-          <h3 className="text-xl font-semibold text-foreground mb-2">검색 결과가 없습니다</h3>
-          <p className="text-muted-foreground text-center max-w-md">
-            다른 검색어나 필터를 사용해보세요
-          </p>
-        </div>
+        <EmptyState
+          title="검색 결과가 없습니다"
+          description="다른 검색어나 필터를 사용해보세요"
+          actionLabel="첫 스토리 만들어보기"
+          actionHref="/story/create"
+        />
       )}
     </section>
   )

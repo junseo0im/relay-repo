@@ -7,9 +7,9 @@ import { ParagraphCard } from "@/components/posts/ParagraphCard"
 import { StoryActionBar } from "@/components/posts/StoryActionBar"
 import { WritingEditor } from "@/components/posts/WritingEditor"
 import { WritingGuide } from "@/components/posts/WritingGuide"
-import { CoverSection } from "@/components/posts/CoverSection"
 import { EpilogueSection } from "@/components/posts/EpilogueSection"
 import { fetchStoryDetail } from "@/lib/queries/story"
+import { fetchEpilogues, fetchEpilogueLikeStatuses } from "@/lib/queries/epilogue"
 import { fetchTurnLikeStatuses, fetchStoryLikeStatus } from "@/lib/queries/likes"
 import { createClient } from "@/lib/supabase/server"
 
@@ -36,12 +36,17 @@ export default async function StoryDetailPage({
   const turnIds = story.paragraphs
     .map((p) => p.turnId)
     .filter((tid): tid is string => !!tid)
-  const [likedTurnIds, storyLiked] = await Promise.all([
+  const isCompleted = story.isCompleted ?? false
+  const epilogues = isCompleted ? await fetchEpilogues(id) : []
+  const [likedTurnIds, storyLiked, likedEpilogueIds] = await Promise.all([
     fetchTurnLikeStatuses(turnIds, user?.id ?? null),
     fetchStoryLikeStatus(id, user?.id ?? null),
+    isCompleted
+      ? fetchEpilogueLikeStatuses(epilogues.map((e) => e.id), user?.id ?? null)
+      : Promise.resolve(new Set<string>()),
   ])
 
-  const isCompleted = story.isCompleted ?? false
+  const isLoggedIn = !!user
   const paragraphs = story.paragraphs
 
   return (
@@ -103,16 +108,13 @@ export default async function StoryDetailPage({
         </div>
 
         {isCompleted ? (
-          <div className="mb-8 space-y-8">
-            <CoverSection
-              roomId={story.id}
-              coverImage={story.coverImage}
-              isCreator={createdBy === user?.id}
-            />
+          <div className="mb-8">
             <EpilogueSection
               storyId={story.id}
               storyTitle={story.title}
-              epilogues={[]}
+              epilogues={epilogues}
+              isLoggedIn={isLoggedIn}
+              likedEpilogueIds={Array.from(likedEpilogueIds)}
             />
           </div>
         ) : (

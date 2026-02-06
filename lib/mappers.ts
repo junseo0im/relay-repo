@@ -7,9 +7,11 @@ import type {
   DbStoryRoom,
   DbStoryTurn,
   DbProfile,
+  DbChallenge,
   Story,
   CompletedStory,
   Paragraph,
+  Challenge,
 } from "@/lib/types"
 
 /**
@@ -51,6 +53,27 @@ export function mapRoomToCompletedStory(
     completedDate: room.completed_at ?? room.updated_at,
     preview: room.preview ?? "",
     coverImage: room.cover_image ?? undefined,
+  }
+}
+
+/**
+ * challenges → Challenge
+ * start_at → startDate, end_at → endDate
+ */
+export function mapChallenge(
+  challenge: DbChallenge,
+  storiesCount: number
+): Challenge {
+  return {
+    id: challenge.id,
+    title: challenge.title,
+    description: challenge.description ?? "",
+    theme: challenge.theme ?? "자유",
+    startDate: challenge.start_at.split("T")[0] ?? challenge.start_at,
+    endDate: challenge.end_at.split("T")[0] ?? challenge.end_at,
+    participants: challenge.participants ?? 0,
+    stories: storiesCount,
+    status: challenge.status,
   }
 }
 

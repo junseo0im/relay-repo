@@ -16,6 +16,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -307,15 +308,13 @@ export default function CompletedPage() {
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="p-6 rounded-full bg-muted/50 mb-4">
-              <BookCheck className="h-12 w-12 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">완성 작품이 없습니다</h3>
-            <p className="text-muted-foreground text-center max-w-md">
-              아직 완성된 스토리가 없어요. 스토리를 만들고 완성하기 버튼을 눌러보세요!
-            </p>
-          </div>
+          <EmptyState
+            icon={<BookCheck className="h-12 w-12 text-muted-foreground" />}
+            title="완성 작품이 없습니다"
+            description="아직 완성된 스토리가 없어요. 스토리를 만들고 완성하기 버튼을 눌러보세요!"
+            actionLabel="스토리 둘러보기"
+            actionHref="/"
+          />
         )}
       </section>
     </div>

@@ -4,8 +4,9 @@ import Link from "next/link"
 import { useMemo, useState } from "react"
 import { BookOpen, Heart, PenLine, Search, Sparkles } from "lucide-react"
 
-import { popularAuthors } from "@/lib/sample-data"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { EmptyState } from "@/components/ui/empty-state"
+import type { PopularAuthor } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,14 +20,18 @@ const badgeColors: Record<string, string> = {
     "bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-700 border-blue-500/30",
 }
 
-export function PopularAuthors() {
+interface PopularAuthorsProps {
+  authors: PopularAuthor[]
+}
+
+export function PopularAuthors({ authors }: PopularAuthorsProps) {
   const [searchQuery, setSearchQuery] = useState("")
 
   const filteredAuthors = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
-    if (!q) return popularAuthors
-    return popularAuthors.filter((author) => author.name.toLowerCase().includes(q))
-  }, [searchQuery])
+    if (!q) return authors
+    return authors.filter((author) => author.name.toLowerCase().includes(q))
+  }, [searchQuery, authors])
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -125,13 +130,11 @@ export function PopularAuthors() {
       </div>
 
       {filteredAuthors.length === 0 && (
-        <div className="text-center py-16">
-          <div className="p-6 rounded-full bg-muted/50 inline-block mb-4">
-            <Search className="h-12 w-12 text-muted-foreground" />
-          </div>
-          <h3 className="text-xl font-semibold text-foreground mb-2">작가를 찾을 수 없습니다</h3>
-          <p className="text-muted-foreground">다른 검색어를 입력해보세요</p>
-        </div>
+        <EmptyState
+          icon={<Search className="h-12 w-12 text-muted-foreground" />}
+          title="작가를 찾을 수 없습니다"
+          description="다른 검색어를 입력해보세요"
+        />
       )}
     </section>
   )

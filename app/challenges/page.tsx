@@ -1,12 +1,21 @@
 import { AwardWinnersGallery } from "@/components/posts/AwardWinnersGallery"
 import { ChallengeCard } from "@/components/posts/ChallengeCard"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Sparkles, Trophy } from "lucide-react"
-import { sampleChallenges } from "@/lib/sample-data"
+import { fetchChallenges, fetchChallengeWinners } from "@/lib/queries/challenge"
 
-export default function ChallengesPage() {
-  const activeChallenges = sampleChallenges.filter((c) => c.status === "active")
-  const upcomingChallenges = sampleChallenges.filter((c) => c.status === "upcoming")
-  const endedChallenges = sampleChallenges.filter((c) => c.status === "ended")
+export default async function ChallengesPage() {
+  const [challenges, winnerStories] = await Promise.all([
+    fetchChallenges(),
+    fetchChallengeWinners(),
+  ])
+  const activeChallenges = challenges.filter((c) => c.status === "active")
+  const upcomingChallenges = challenges.filter((c) => c.status === "upcoming")
+  const endedChallenges = challenges.filter((c) => c.status === "ended")
+  const hasAnyChallenges =
+    activeChallenges.length > 0 ||
+    upcomingChallenges.length > 0 ||
+    endedChallenges.length > 0
 
   return (
     <div className="min-h-screen py-8">
@@ -25,72 +34,84 @@ export default function ChallengesPage() {
           </p>
         </div>
 
-        <AwardWinnersGallery />
+        <AwardWinnersGallery winnerStories={winnerStories} />
 
-        {activeChallenges.length > 0 && (
-          <section className="mb-12 mt-16">
-            <div className="flex items-center gap-2 mb-6">
-              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-              <h2 className="text-xl font-semibold text-foreground">진행 중인 챌린지</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeChallenges.map((challenge) => (
-                <ChallengeCard
-                  key={challenge.id}
-                  id={challenge.id}
-                  title={challenge.title}
-                  description={challenge.description}
-                  theme={challenge.theme}
-                  endDate={new Date(challenge.endDate)}
-                  participants={challenge.participants}
-                  stories={challenge.stories}
-                  status={challenge.status}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+        {!hasAnyChallenges ? (
+          <EmptyState
+            icon={<Trophy className="h-12 w-12 text-muted-foreground" />}
+            title="아직 등록된 챌린지가 없어요"
+            description="곧 새로운 챌린지가 시작됩니다. 조금만 기다려주세요!"
+            actionLabel="홈으로 돌아가기"
+            actionHref="/"
+          />
+        ) : (
+          <>
+            {activeChallenges.length > 0 && (
+              <section className="mb-12 mt-16">
+                <div className="flex items-center gap-2 mb-6">
+                  <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                  <h2 className="text-xl font-semibold text-foreground">진행 중인 챌린지</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeChallenges.map((challenge) => (
+                    <ChallengeCard
+                      key={challenge.id}
+                      id={challenge.id}
+                      title={challenge.title}
+                      description={challenge.description}
+                      theme={challenge.theme}
+                      endDate={new Date(challenge.endDate)}
+                      participants={challenge.participants}
+                      stories={challenge.stories}
+                      status={challenge.status}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
-        {upcomingChallenges.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-xl font-semibold text-foreground mb-6">예정된 챌린지</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {upcomingChallenges.map((challenge) => (
-                <ChallengeCard
-                  key={challenge.id}
-                  id={challenge.id}
-                  title={challenge.title}
-                  description={challenge.description}
-                  theme={challenge.theme}
-                  endDate={new Date(challenge.endDate)}
-                  participants={challenge.participants}
-                  stories={challenge.stories}
-                  status={challenge.status}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+            {upcomingChallenges.length > 0 && (
+              <section className="mb-12">
+                <h2 className="text-xl font-semibold text-foreground mb-6">예정된 챌린지</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {upcomingChallenges.map((challenge) => (
+                    <ChallengeCard
+                      key={challenge.id}
+                      id={challenge.id}
+                      title={challenge.title}
+                      description={challenge.description}
+                      theme={challenge.theme}
+                      endDate={new Date(challenge.endDate)}
+                      participants={challenge.participants}
+                      stories={challenge.stories}
+                      status={challenge.status}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
-        {endedChallenges.length > 0 && (
-          <section>
-            <h2 className="text-xl font-semibold text-foreground mb-6">종료된 챌린지</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {endedChallenges.map((challenge) => (
-                <ChallengeCard
-                  key={challenge.id}
-                  id={challenge.id}
-                  title={challenge.title}
-                  description={challenge.description}
-                  theme={challenge.theme}
-                  endDate={new Date(challenge.endDate)}
-                  participants={challenge.participants}
-                  stories={challenge.stories}
-                  status={challenge.status}
-                />
-              ))}
-            </div>
-          </section>
+            {endedChallenges.length > 0 && (
+              <section>
+                <h2 className="text-xl font-semibold text-foreground mb-6">종료된 챌린지</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {endedChallenges.map((challenge) => (
+                    <ChallengeCard
+                      key={challenge.id}
+                      id={challenge.id}
+                      title={challenge.title}
+                      description={challenge.description}
+                      theme={challenge.theme}
+                      endDate={new Date(challenge.endDate)}
+                      participants={challenge.participants}
+                      stories={challenge.stories}
+                      status={challenge.status}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>

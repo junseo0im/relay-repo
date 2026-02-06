@@ -242,10 +242,10 @@
 
 | # | 태스크 | 파일 경로 | 기술 스택 | 체크 |
 |---|--------|-----------|-----------|------|
-| 3.2.1 | toggleStoryLike Server Action 생성 | `actions/likes.ts` | `supabase.rpc('toggle_story_like', { room_id, user_id })` | [ ] |
-| 3.2.2 | StoryActionBar roomId(또는 storyId), isLiked, likeCount props | `components/posts/StoryActionBar.tsx` | 기존 storyId → roomId로 통일 권장 | [ ] |
-| 3.2.3 | 스토리 상세에서 isLiked 조회 후 전달 | `app/story/[id]/page.tsx` | story_likes WHERE room_id, user_id | [ ] |
-| 3.2.4 | 좋아요 버튼 클릭 시 toggleStoryLike 호출 | StoryActionBar | onLikeClick → toggleStoryLike | [ ] |
+| 3.2.1 | toggleStoryLike Server Action 생성 | `actions/likes.ts` | `supabase.rpc('toggle_story_like', { room_id, user_id })` | [x] |
+| 3.2.2 | StoryActionBar roomId(또는 storyId), isLiked, likeCount props | `components/posts/StoryActionBar.tsx` | 기존 storyId → roomId로 통일 권장 | [x] |
+| 3.2.3 | 스토리 상세에서 isLiked 조회 후 전달 | `app/story/[id]/page.tsx` | story_likes WHERE room_id, user_id | [x] |
+| 3.2.4 | 좋아요 버튼 클릭 시 toggleStoryLike 호출 | StoryActionBar | onLikeClick → toggleStoryLike | [x] |
 
 **Supabase SDK 메서드**: `rpc('toggle_story_like')`
 
@@ -305,12 +305,12 @@
 
 | # | 태스크 | 파일 경로 | 기술 스택 | 체크 |
 |---|--------|-----------|-----------|------|
-| 3.5.1 | fetchMyProfile 함수 | `lib/queries/profile.ts` | `from('profiles').select().eq('id', uid).single()` | [ ] |
-| 3.5.2 | 참여 스토리: story_turns WHERE author_id | 위 | room_id 목록 → story_rooms 조회, myTurns count | [ ] |
-| 3.5.3 | 좋아요 스토리: story_likes WHERE user_id | 위 | room_id 목록 → story_rooms 조회 | [ ] |
-| 3.5.4 | 통계: 턴 수, 받은 좋아요, 참여 스토리 수 | 위 | 집계 쿼리 또는 RPC | [ ] |
-| 3.5.5 | app/profile/page.tsx DB 연동 | `app/profile/page.tsx` | Client, useEffect 또는 Server Component | [ ] |
-| 3.5.6 | localStorage profile-settings 제거 | 위 | profiles 테이블만 사용 | [ ] |
+| 3.5.1 | fetchMyProfile 함수 | `lib/queries/profile.ts` | `from('profiles').select().eq('id', uid).single()` | [x] |
+| 3.5.2 | 참여 스토리: story_turns WHERE author_id | 위 | room_id 목록 → story_rooms 조회, myTurns count | [x] |
+| 3.5.3 | 좋아요 스토리: story_likes WHERE user_id | 위 | room_id 목록 → story_rooms 조회 | [x] |
+| 3.5.4 | 통계: 턴 수, 받은 좋아요, 참여 스토리 수 | 위 | 집계 쿼리 또는 RPC | [x] |
+| 3.5.5 | app/profile/page.tsx DB 연동 | `app/profile/page.tsx` | Client, useEffect 또는 Server Component | [x] |
+| 3.5.6 | localStorage profile-settings 제거 | 위 | profiles 테이블만 사용 | [x] |
 
 **Supabase SDK 메서드**: `from('profiles').select()`, `from('story_turns').select()`, `from('story_likes').select()`
 
@@ -336,11 +336,11 @@
 
 | # | 태스크 | 파일 경로 | 기술 스택 | 체크 |
 |---|--------|-----------|-----------|------|
-| 3.7.1 | fetchChallenges 함수 | `lib/queries/challenge.ts` | `from('challenges').select().order('start_at')` | [ ] |
-| 3.7.2 | challenge_stories로 참여 스토리 수 집계 | 위 | count by challenge_id | [ ] |
-| 3.7.3 | mapChallenge (start_at→startDate, end_at→endDate) | `lib/mappers.ts` | DbChallenge → Challenge | [ ] |
-| 3.7.4 | app/challenges/page.tsx sampleChallenges 제거 | `app/challenges/page.tsx` | DB 데이터로 교체 | [ ] |
-| 3.7.5 | app/challenges/[id]/page.tsx 참여 스토리 목록 | `app/challenges/[id]/page.tsx` | challenge_stories + story_rooms 조인 | [ ] |
+| 3.7.1 | fetchChallenges 함수 | `lib/queries/challenge.ts` | `from('challenges').select().order('start_at')` | [x] |
+| 3.7.2 | challenge_stories로 참여 스토리 수 집계 | 위 | count by challenge_id | [x] |
+| 3.7.3 | mapChallenge (start_at→startDate, end_at→endDate) | `lib/mappers.ts` | DbChallenge → Challenge | [x] |
+| 3.7.4 | app/challenges/page.tsx sampleChallenges 제거 | `app/challenges/page.tsx` | DB 데이터로 교체 | [x] |
+| 3.7.5 | app/challenges/[id]/page.tsx 참여 스토리 목록 | `app/challenges/[id]/page.tsx` | challenge_stories + story_rooms 조인 | [x] |
 | 3.7.6 | challenges 시드 데이터 (선택) | SQL 또는 시드 스크립트 | admin이 수동 INSERT | [ ] |
 
 **Supabase SDK 메서드**: `from('challenges').select()`, `from('challenge_stories').select()`
@@ -353,10 +353,10 @@
 
 | # | 태스크 | 파일 경로 | 기술 스택 | 체크 |
 |---|--------|-----------|-----------|------|
-| 3.8.1 | getPopularAuthors RPC 또는 쿼리 | `lib/queries/author.ts` 또는 RPC | story_turns, turn_likes 집계 | [ ] |
-| 3.8.2 | user_badges 조인 (배지) | 위 | from('user_badges').select() | [ ] |
-| 3.8.3 | app/page.tsx PopularAuthors 데이터 전달 | `app/page.tsx` | fetchPopularAuthors() | [ ] |
-| 3.8.4 | PopularAuthors popularAuthors sample 제거 | `components/posts/PopularAuthors.tsx` | props로 authors 전달 | [ ] |
+| 3.8.1 | getPopularAuthors RPC 또는 쿼리 | `lib/queries/author.ts` 또는 RPC | story_turns, turn_likes 집계 | [x] |
+| 3.8.2 | user_badges 조인 (배지) | 위 | from('user_badges').select() | [x] |
+| 3.8.3 | app/page.tsx PopularAuthors 데이터 전달 | `app/page.tsx` | fetchPopularAuthors() | [x] |
+| 3.8.4 | PopularAuthors popularAuthors sample 제거 | `components/posts/PopularAuthors.tsx` | props로 authors 전달 | [x] |
 
 ---
 
@@ -378,8 +378,8 @@
 
 | # | 태스크 | 파일 경로 | 기술 스택 | 체크 |
 |---|--------|-----------|-----------|------|
-| 3.10.1 | fetchRankingStories 함수 | `lib/queries/ranking.ts` | `from('story_rooms').select().order('like_count', { ascending: false }).limit(10)` | [ ] |
-| 3.10.2 | app/ranking/page.tsx sample 제거 | `app/ranking/page.tsx` | DB 데이터로 교체 | [ ] |
+| 3.10.1 | fetchRankingStories 함수 | `lib/queries/ranking.ts` | `from('story_rooms').select().order('like_count', { ascending: false }).limit(10)` | [x] |
+| 3.10.2 | app/ranking/page.tsx sample 제거 | `app/ranking/page.tsx` | DB 데이터로 교체 | [x] |
 
 ---
 
@@ -389,10 +389,10 @@
 
 | # | 태스크 | 파일 경로 | 기술 스택 | 체크 |
 |---|--------|-----------|-----------|------|
-| 3.11.1 | fetchEpilogues(roomId) 함수 | `lib/queries/epilogue.ts` | `from('epilogues').select().eq('room_id', roomId)` | [ ] |
-| 3.11.2 | createEpilogue Server Action | `actions/epilogue.ts` | `from('epilogues').insert({ room_id, author_id, content })` | [ ] |
-| 3.11.3 | EpilogueSection DB 연동 | `components/posts/EpilogueSection.tsx` | epilogues props, 작성 폼 → createEpilogue | [ ] |
-| 3.11.4 | epilogues + profiles 조인 (author 표시) | lib/queries/epilogue.ts | author_id → profiles display_name, avatar_url | [ ] |
+| 3.11.1 | fetchEpilogues(roomId) 함수 | `lib/queries/epilogue.ts` | `from('epilogues').select().eq('room_id', roomId)` | [x] |
+| 3.11.2 | createEpilogue Server Action | `actions/epilogue.ts` | `from('epilogues').insert({ room_id, author_id, content })` | [x] |
+| 3.11.3 | EpilogueSection DB 연동 | `components/posts/EpilogueSection.tsx` | epilogues props, 작성 폼 → createEpilogue | [x] |
+| 3.11.4 | epilogues + profiles 조인 (author 표시) | lib/queries/epilogue.ts | author_id → profiles display_name, avatar_url | [x] |
 
 ---
 

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { BookOpen, ChevronRight, Heart } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { EmptyState } from "@/components/ui/empty-state"
 import type { ProfileStory } from "@/lib/types"
 
 interface ProfileStoryListProps {
@@ -15,9 +16,16 @@ interface ProfileStoryListProps {
 export function ProfileStoryList({ stories, type, emptyMessage }: ProfileStoryListProps) {
   if (stories.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p>{emptyMessage}</p>
-      </div>
+      <EmptyState
+        title={emptyMessage}
+        description={
+          type === "participated"
+            ? "스토리에 참여하고 나만의 이야기를 이어가 보세요"
+            : "마음에 드는 스토리에 좋아요를 눌러보세요"
+        }
+        actionLabel={type === "participated" ? "스토리 둘러보기" : "스토리 둘러보기"}
+        actionHref="/"
+      />
     )
   }
 

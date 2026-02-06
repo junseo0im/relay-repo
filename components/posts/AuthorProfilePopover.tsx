@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { BookOpen, ExternalLink, Heart, PenLine } from "lucide-react"
+import { BookOpen, ExternalLink, Heart, Loader2, PenLine } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +12,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { popularAuthors } from "@/lib/sample-data"
+
+interface AuthorStats {
+  storiesCount: number
+  totalLikes: number
+  totalTurns: number
+  badge?: string
+}
 
 interface AuthorProfilePopoverProps {
   authorId?: string
@@ -28,10 +34,30 @@ export function AuthorProfilePopover({
   children,
 }: AuthorProfilePopoverProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [authorData, setAuthorData] = useState<AuthorStats | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const authorData = authorId
-    ? popularAuthors.find((a) => a.id === authorId)
-    : null
+  useEffect(() => {
+    if (!isOpen) setAuthorData(null)
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen || !authorId) return
+    setLoading(true)
+    setAuthorData(null)
+    fetch(`/api/author/${authorId}/stats`)
+      .then((res) => res.json())
+      .then((data) => {
+        setAuthorData({
+          storiesCount: data.storiesCount ?? 0,
+          totalLikes: data.totalLikes ?? 0,
+          totalTurns: data.totalTurns ?? 0,
+          badge: data.badge,
+        })
+      })
+      .catch(() => setAuthorData(null))
+      .finally(() => setLoading(false))
+  }, [isOpen, authorId])
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -65,44 +91,52 @@ export function AuthorProfilePopover({
           </div>
         </div>
 
-        {authorData && (
+        {(authorData || loading) && (
           <div className="grid grid-cols-3 gap-px bg-border/50 -mt-8 relative z-10 mx-4 rounded-xl overflow-hidden shadow-lg">
             <div className="bg-card/95 backdrop-blur-sm p-3 text-center">
               <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                 <BookOpen className="h-3 w-3" />
                 <span>스토리</span>
               </div>
-              <div className="text-lg font-bold text-foreground">{authorData.storiesCount}</div>
+              <div className="text-lg font-bold text-foreground">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : authorData?.storiesCount ?? 0}
+              </div>
             </div>
             <div className="bg-card/95 backdrop-blur-sm p-3 text-center">
               <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                 <Heart className="h-3 w-3" />
                 <span>좋아요</span>
               </div>
-              <div className="text-lg font-bold text-foreground">{authorData.totalLikes}</div>
+              <div className="text-lg font-bold text-foreground">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : authorData?.totalLikes ?? 0}
+              </div>
             </div>
             <div className="bg-card/95 backdrop-blur-sm p-3 text-center">
               <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                 <PenLine className="h-3 w-3" />
                 <span>턴</span>
               </div>
-              <div className="text-lg font-bold text-foreground">{authorData.totalTurns}</div>
+              <div className="text-lg font-bold text-foreground">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : authorData?.totalTurns ?? 0}
+              </div>
             </div>
           </div>
         )}
 
-        <div className="p-4 pt-6">
-          <Link href={`/profile/${authorId || "1"}`}>
-            <Button
-              className="w-full gap-2"
-              variant="default"
-              onClick={() => setIsOpen(false)}
-            >
-              <ExternalLink className="h-4 w-4" />
-              프로필 전체보기
-            </Button>
-          </Link>
-        </div>
+        {authorId && (
+          <div className="p-4 pt-6">
+            <Link href={`/profile/${authorId}`}>
+              <Button
+                className="w-full gap-2"
+                variant="default"
+                onClick={() => setIsOpen(false)}
+              >
+                <ExternalLink className="h-4 w-4" />
+                프로필 전체보기
+              </Button>
+            </Link>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   )

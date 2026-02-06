@@ -3,7 +3,10 @@ import { ArrowLeft, BookOpen, Calendar, Trophy, Users } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { sampleChallenges, sampleStories } from "@/lib/sample-data"
+import {
+  fetchChallengeById,
+  fetchChallengeStories,
+} from "@/lib/queries/challenge"
 import { cn } from "@/lib/utils"
 
 export default async function ChallengeDetailPage({
@@ -12,7 +15,10 @@ export default async function ChallengeDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const challenge = sampleChallenges.find((c) => c.id === id)
+  const [challenge, challengeStories] = await Promise.all([
+    fetchChallengeById(id),
+    fetchChallengeStories(id),
+  ])
 
   if (!challenge) {
     return (
@@ -24,9 +30,6 @@ export default async function ChallengeDetailPage({
       </div>
     )
   }
-
-  // 챌린지에 참여한 스토리 (isChallenge가 true인 스토리, 상세 페이지에서는 샘플로 표시)
-  const challengeStories = sampleStories.filter((s) => s.isChallenge).slice(0, 6)
 
   const statusConfig = {
     active: { label: "진행 중", className: "bg-primary/10 text-primary" },
@@ -128,7 +131,7 @@ export default async function ChallengeDetailPage({
                       {story.title}
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                      {story.preview}
+                      {story.preview ?? ""}
                     </p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                       <span>{story.turns}턴</span>

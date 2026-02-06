@@ -1,43 +1,15 @@
 "use client"
 
 import Link from "next/link"
-import { Award, Eye, Heart, Medal, Trophy } from "lucide-react"
+import { Award, Heart, Medal, Trophy } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import type { AwardWinnerStory } from "@/lib/queries/challenge"
 
-const winnerStories = [
-  {
-    id: "w1",
-    title: "별빛 속의 약속",
-    author: "달빛작가",
-    challengeName: "겨울밤 로맨스 챌린지",
-    rank: 1,
-    likes: 892,
-    views: 5431,
-    excerpt: "그날 밤 하늘의 별들은 유난히 빛났고, 우리의 약속도 그만큼 빛났다...",
-  },
-  {
-    id: "w2",
-    title: "시간의 문을 열다",
-    author: "시간여행자",
-    challengeName: "반전의 마법사 챌린지",
-    rank: 2,
-    likes: 734,
-    views: 4102,
-    excerpt: "마법사는 자신이 지켜온 것이 사실은 저주였음을 깨달았다...",
-  },
-  {
-    id: "w3",
-    title: "기억의 파편들",
-    author: "은하수탐험",
-    challengeName: "겨울밤 로맨스 챌린지",
-    rank: 3,
-    likes: 621,
-    views: 3567,
-    excerpt: "잃어버린 기억들이 하나씩 돌아올 때마다 그녀는 진실에 가까워졌다...",
-  },
-]
+interface AwardWinnersGalleryProps {
+  winnerStories: AwardWinnerStory[]
+}
 
 const rankConfig = {
   1: {
@@ -63,7 +35,11 @@ const rankConfig = {
   },
 }
 
-export function AwardWinnersGallery() {
+export function AwardWinnersGallery({ winnerStories }: AwardWinnersGalleryProps) {
+  const topWinners = winnerStories.filter((w) => w.rank <= 3)
+
+  if (topWinners.length === 0) return null
+
   return (
     <section id="award-winners" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center mb-10">
@@ -130,10 +106,6 @@ export function AwardWinnersGallery() {
                   <div className="flex items-center gap-1.5">
                     <Heart className="h-4 w-4 text-destructive" />
                     <span>{story.likes}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Eye className="h-4 w-4" />
-                    <span>{story.views}</span>
                   </div>
                 </div>
 
